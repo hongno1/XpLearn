@@ -1,0 +1,34 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+//        google()
+//        mavenCentral()
+
+        //MavenCentral镜像仓库地址 https://repo1.maven.org/maven2/
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        //谷歌镜像仓库地址
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        //central仓和jcenter仓的聚合仓,jentral镜像仓库地址
+        maven { url 'https://maven.aliyun.com/repository/public'}
+        //gradle插件仓 https://plugins.gradle.org/m2/
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        //添加xposed依赖库
+        maven { url "https://api.xposed.info/" }
+
+        //sekiro的maven仓库
+        maven {
+            name "IntMaven"
+            url "https://nexus.iinti.cn/repository/maven-public/"
+        }
+
+    }
+}
+rootProject.name = "XpLearn"
+include ':app'
