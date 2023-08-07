@@ -4,6 +4,7 @@ import android.util.Log;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 import de.robv.android.xposed.IXposedHookInitPackageResources;
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -49,10 +50,10 @@ public class HookMain implements IXposedHookLoadPackage {
 
         Method run = XposedHelpers.findMethodExact(People, "run", String.class);
         Boolean runResult = (Boolean) run.invoke(XposedHelpers.newInstance(People, 1), "---dddddd");
-
         Log.i(TAG, "handleLoadPackage: runResult=" + runResult);
 
-        XposedHelpers.findAndHookMethod(People, "run", String.class, new XC_MethodHook() {
+        // hook run方法  修改方法对应的值
+        XposedHelpers.findAndHookMethod(People, "run", String.class, new XC_MethodHook(XCallback.PRIORITY_DEFAULT) {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
@@ -60,6 +61,12 @@ public class HookMain implements IXposedHookLoadPackage {
                 String args0 = (String) param.args[0];
                 Object obj = param.thisObject;
                 Log.i(TAG, "beforeHookedMethod: args0=" + args0 + "-----obj=" + obj);
+
+                param.args[0] = "hongqino1";
+                //打印堆栈的日志
+                Log.i(TAG, Log.getStackTraceString(new Throwable()));
+
+
             }
 
             @Override
@@ -70,10 +77,65 @@ public class HookMain implements IXposedHookLoadPackage {
                 Log.i(TAG, "afterHookedMethod: result=" + result);
 
                 param.setResult(false);
-                Log.i(TAG, "afterHookedMethod: xiugaiResut=" + param.getResult());
+                Log.i(TAG, "afterHookedMethod: updateResult=" + param.getResult());
 
             }
         });
+
+
+        // hook 构造方法
+        XposedHelpers.findAndHookConstructor("com.hexl.lessontest.logic.People", lpparam.classLoader, new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                super.beforeHookedMethod(param);
+                Log.i(TAG, "beforeHookedMethod: findAndHookConstructor");
+            }
+
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                super.afterHookedMethod(param);
+                Object object = param.thisObject;
+
+                Log.i(TAG, "afterHookedMethod: findAndHookConstructor" + object);
+            }
+        });
+
+        // XposedBridge
+
+        //修改原来的方法执行返回结果
+        XposedBridge.hookAllMethods(People, "speak", new XC_MethodReplacement() {
+            @Override
+            protected Object replaceHookedMethod(MethodHookParam param) throws Throwable {
+
+                Log.i(TAG, "replaceHookedMethod: " + Arrays.toString(param.args));
+                if (param.args.length == 1) {
+                    return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                }
+                return null;
+            }
+        });
+
+
+        // XposedHelper的 get set的api
+
+        Object peopleObj = XposedHelpers.newInstance(People, "fffff");
+        XposedHelpers.setObjectField(peopleObj, "name", "hhhhh");
+        XposedHelpers.setStaticBooleanField(People, "run", false);
+
+        Object name = XposedHelpers.getObjectField(peopleObj, "name");
+        boolean booleanField = XposedHelpers.getStaticBooleanField(People, "run");
+
+        Log.i(TAG, "handleLoadPackage: name---" + name);
+        Log.i(TAG, "handleLoadPackage: booleanField---" + booleanField);
+
+        XposedHelpers.setAdditionalInstanceField(peopleObj, "chatgpt", "kkkkk");
+        XposedHelpers.setAdditionalStaticField(peopleObj, "chat", "gpt");
+
+        Object chat = XposedHelpers.getAdditionalStaticField(peopleObj, "chat");
+        Object chatgpt = XposedHelpers.getAdditionalInstanceField(peopleObj, "chatgpt");
+
+        Log.i(TAG, "handleLoadPackage: chat=" + chat);
+        Log.i(TAG, "handleLoadPackage: chatgpt=" + chatgpt);
 
 
     }
