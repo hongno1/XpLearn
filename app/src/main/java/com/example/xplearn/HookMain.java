@@ -40,51 +40,82 @@ public class HookMain implements IXposedHookLoadPackage {
         Log.i(TAG, "handleLoadPackage: processName=" + processName);
         Log.i(TAG, "handleLoadPackage: isFirstApplication=" + isFirstApplication);
 
-        Class<?> People = XposedHelpers.findClassIfExists("com.hexl.lessontest.logic.People", lpparam.classLoader);
-        Field hello = XposedHelpers.findField(People, "hello");
-        // 如果是私有的属性需要设置成true
-        hello.setAccessible(true);
-        //看是否是字符串 如果是字符串则传null   否则传入对象
-        String world = (String) hello.get(null);
-        Log.i(TAG, "handleLoadPackage: hello=" + world);
+        //lsposed 相关api
+//        test_learn_api(classLoader);
 
-        Method run = XposedHelpers.findMethodExact(People, "run", String.class);
-        Boolean runResult = (Boolean) run.invoke(XposedHelpers.newInstance(People, 1), "---dddddd");
-        Log.i(TAG, "handleLoadPackage: runResult=" + runResult);
-
-        // hook run方法  修改方法对应的值
-        XposedHelpers.findAndHookMethod(People, "run", String.class, new XC_MethodHook(XCallback.PRIORITY_DEFAULT) {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                super.beforeHookedMethod(param);
-
-                String args0 = (String) param.args[0];
-                Object obj = param.thisObject;
-                Log.i(TAG, "beforeHookedMethod: args0=" + args0 + "-----obj=" + obj);
-
-                param.args[0] = "hongqino1";
-                //打印堆栈的日志
-                Log.i(TAG, Log.getStackTraceString(new Throwable()));
+        testPre();
 
 
-            }
+    }
 
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                super.afterHookedMethod(param);
+    // 判断文件是否可读
+    private static XSharedPreferences getPref(String path){
+        XSharedPreferences pref = new XSharedPreferences(BuildConfig.APPLICATION_ID, path);
+        return pref.getFile().canRead() ? pref : null;
+    }
 
-                Boolean result = (Boolean) param.getResult();
-                Log.i(TAG, "afterHookedMethod: result=" + result);
+    // hook相关 XSharedPreferences的公告配置文件
+    private String testPre(){
+        XSharedPreferences sharedPreferences = getPref("TestSetting");
+        Log.i(TAG, "testPre: share: " + sharedPreferences);
+        if (sharedPreferences == null){
+            Log.i(TAG, "testPre: null");
+            return null;
+        }else{
+            sharedPreferences.reload();
+            String web = sharedPreferences.getString("web", "");
+            Log.i(TAG, "testPre: web=" + web);
 
-                param.setResult(false);
-                Log.i(TAG, "afterHookedMethod: updateResult=" + param.getResult());
+            return web;
+        }
+    }
 
-            }
-        });
+    private void test_learn_api(ClassLoader classLoader) {
+        Class<?> People = XposedHelpers.findClassIfExists("com.hexl.lessontest.logic.People", classLoader);
+//        Field hello = XposedHelpers.findField(People, "hello");
+//        // 如果是私有的属性需要设置成true
+//        hello.setAccessible(true);
+//        //看是否是字符串 如果是字符串则传null   否则传入对象
+//        String world = (String) hello.get(null);
+//        Log.i(TAG, "handleLoadPackage: hello=" + world);
+//
+//        Method run = XposedHelpers.findMethodExact(People, "run", String.class);
+//        Boolean runResult = (Boolean) run.invoke(XposedHelpers.newInstance(People, 1), "---dddddd");
+//        Log.i(TAG, "handleLoadPackage: runResult=" + runResult);
+//
+//        // hook run方法  修改方法对应的值
+//        XposedHelpers.findAndHookMethod(People, "run", String.class, new XC_MethodHook(XCallback.PRIORITY_DEFAULT) {
+//            @Override
+//            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+//                super.beforeHookedMethod(param);
+//
+//                String args0 = (String) param.args[0];
+//                Object obj = param.thisObject;
+//                Log.i(TAG, "beforeHookedMethod: args0=" + args0 + "-----obj=" + obj);
+//
+//                param.args[0] = "hongqino1";
+//                //打印堆栈的日志
+//                Log.i(TAG, Log.getStackTraceString(new Throwable()));
+//
+//
+//            }
+//
+//            @Override
+//            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+//                super.afterHookedMethod(param);
+//
+//                Boolean result = (Boolean) param.getResult();
+//                Log.i(TAG, "afterHookedMethod: result=" + result);
+//
+//                param.setResult(false);
+//                Log.i(TAG, "afterHookedMethod: updateResult=" + param.getResult());
+//
+//            }
+//        });
 
 
         // hook 构造方法
-        XposedHelpers.findAndHookConstructor("com.hexl.lessontest.logic.People", lpparam.classLoader, new XC_MethodHook() {
+        XposedHelpers.findAndHookConstructor("com.hexl.lessontest.logic.People", classLoader, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 super.beforeHookedMethod(param);
@@ -97,6 +128,8 @@ public class HookMain implements IXposedHookLoadPackage {
                 Object object = param.thisObject;
 
                 Log.i(TAG, "afterHookedMethod: findAndHookConstructor" + object);
+                // 将hook的构造函数 保存到Store的实例中去
+                Store.peopleConstructorInstance = object;
             }
         });
 
@@ -136,7 +169,5 @@ public class HookMain implements IXposedHookLoadPackage {
 
         Log.i(TAG, "handleLoadPackage: chat=" + chat);
         Log.i(TAG, "handleLoadPackage: chatgpt=" + chatgpt);
-
-
     }
 }
