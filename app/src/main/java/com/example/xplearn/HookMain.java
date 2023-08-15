@@ -2,10 +2,15 @@ package com.example.xplearn;
 
 import android.util.Log;
 
+import com.example.xplearn.handler.TestHandler;
+import com.example.xplearn.handler.TwoHandler;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.UUID;
 
+import cn.iinti.sekiro3.business.api.SekiroClient;
 import de.robv.android.xposed.IXposedHookInitPackageResources;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.IXposedHookZygoteInit;
@@ -43,8 +48,14 @@ public class HookMain implements IXposedHookLoadPackage {
         //lsposed 相关api
 //        test_learn_api(classLoader);
 
-        testPre();
+//        testPre();
 
+        // 主进程等于包名 则进行执行
+//        if (lpparam.processName.equals(lpparam.packageName) && !BuildConfig.APPLICATION_ID.equals(lpparam.packageName)){
+//            connectServer();
+//        }
+
+        connectServer();
 
     }
 
@@ -70,49 +81,67 @@ public class HookMain implements IXposedHookLoadPackage {
         }
     }
 
+    // connect sekiro 方式方法
+    private boolean connectServer(){
+
+        String clientId = UUID.randomUUID().toString().replace("-", "");
+        SekiroClient sekiroClient = new SekiroClient("test01", clientId, "81.69.37.203", 5612);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                sekiroClient.setupSekiroRequestInitializer((sekiroRequest, handlerRegistry) -> {
+                    //注册一个接口
+                    handlerRegistry.registerSekiroHandler(new TestHandler());
+                    handlerRegistry.registerSekiroHandler(new TwoHandler());
+                }).start();
+            }
+        });
+        return true;
+    }
+
     private void test_learn_api(ClassLoader classLoader) {
         Class<?> People = XposedHelpers.findClassIfExists("com.hexl.lessontest.logic.People", classLoader);
-//        Field hello = XposedHelpers.findField(People, "hello");
-//        // 如果是私有的属性需要设置成true
-//        hello.setAccessible(true);
-//        //看是否是字符串 如果是字符串则传null   否则传入对象
+        Field hello = XposedHelpers.findField(People, "hello");
+        // 如果是私有的属性需要设置成true
+        hello.setAccessible(true);
+        //看是否是字符串 如果是字符串则传null   否则传入对象
 //        String world = (String) hello.get(null);
 //        Log.i(TAG, "handleLoadPackage: hello=" + world);
-//
+
 //        Method run = XposedHelpers.findMethodExact(People, "run", String.class);
 //        Boolean runResult = (Boolean) run.invoke(XposedHelpers.newInstance(People, 1), "---dddddd");
 //        Log.i(TAG, "handleLoadPackage: runResult=" + runResult);
-//
-//        // hook run方法  修改方法对应的值
-//        XposedHelpers.findAndHookMethod(People, "run", String.class, new XC_MethodHook(XCallback.PRIORITY_DEFAULT) {
-//            @Override
-//            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-//                super.beforeHookedMethod(param);
-//
-//                String args0 = (String) param.args[0];
-//                Object obj = param.thisObject;
-//                Log.i(TAG, "beforeHookedMethod: args0=" + args0 + "-----obj=" + obj);
-//
-//                param.args[0] = "hongqino1";
-//                //打印堆栈的日志
-//                Log.i(TAG, Log.getStackTraceString(new Throwable()));
-//
-//
-//            }
-//
-//            @Override
-//            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-//                super.afterHookedMethod(param);
-//
-//                Boolean result = (Boolean) param.getResult();
-//                Log.i(TAG, "afterHookedMethod: result=" + result);
-//
-//                param.setResult(false);
-//                Log.i(TAG, "afterHookedMethod: updateResult=" + param.getResult());
-//
-//            }
-//        });
 
+        // hook run方法  修改方法对应的值
+        XposedHelpers.findAndHookMethod(People, "run", String.class, new XC_MethodHook(XCallback.PRIORITY_DEFAULT) {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                super.beforeHookedMethod(param);
+
+                String args0 = (String) param.args[0];
+                Object obj = param.thisObject;
+                Log.i(TAG, "beforeHookedMethod: args0=" + args0 + "-----obj=" + obj);
+
+                param.args[0] = "hongqino1";
+                //打印堆栈的日志
+                Log.i(TAG, Log.getStackTraceString(new Throwable()));
+
+
+            }
+
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                super.afterHookedMethod(param);
+
+                Boolean result = (Boolean) param.getResult();
+                Log.i(TAG, "afterHookedMethod: result=" + result);
+
+                param.setResult(false);
+                Log.i(TAG, "afterHookedMethod: updateResult=" + param.getResult());
+
+            }
+        });
 
         // hook 构造方法
         XposedHelpers.findAndHookConstructor("com.hexl.lessontest.logic.People", classLoader, new XC_MethodHook() {
