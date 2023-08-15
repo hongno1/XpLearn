@@ -1,6 +1,11 @@
 package com.example.xplearn;
 
+import android.app.AndroidAppHelper;
+import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.example.xplearn.handler.TestHandler;
 import com.example.xplearn.handler.TwoHandler;
@@ -49,13 +54,37 @@ public class HookMain implements IXposedHookLoadPackage {
 //        test_learn_api(classLoader);
 
 //        testPre();
+        if (lpparam.processName.equals(lpparam.packageName)){
 
-        // 主进程等于包名 则进行执行
-//        if (lpparam.processName.equals(lpparam.packageName) && !BuildConfig.APPLICATION_ID.equals(lpparam.packageName)){
-//            connectServer();
-//        }
+            showToast("i am coming....");
+            connectServer();
 
-        connectServer();
+
+            Class<?> aClass = XposedHelpers.findClassIfExists("com.hexl.lessontest.logic.People", lpparam.classLoader);
+            if (aClass != null){
+                XposedBridge.hookAllConstructors(aClass, new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        super.afterHookedMethod(param);
+                        Store.peopleMethodInstance = param.thisObject;
+                    }
+                });
+            }
+
+        }
+    }
+
+
+    // toast日志输出
+    private static void showToast(String msg){
+
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                Context context = AndroidAppHelper.currentApplication().getApplicationContext();
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show();
+            }
+        }, 3000);
 
     }
 
@@ -85,8 +114,9 @@ public class HookMain implements IXposedHookLoadPackage {
     private boolean connectServer(){
 
         String clientId = UUID.randomUUID().toString().replace("-", "");
-        SekiroClient sekiroClient = new SekiroClient("test01", clientId, "81.69.37.203", 5612);
+        SekiroClient sekiroClient = new SekiroClient("test001", clientId, "81.69.37.203", 5612);
 
+        // 开启异步线程实现 处理任务
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -96,7 +126,7 @@ public class HookMain implements IXposedHookLoadPackage {
                     handlerRegistry.registerSekiroHandler(new TwoHandler());
                 }).start();
             }
-        });
+        }).start();
         return true;
     }
 
