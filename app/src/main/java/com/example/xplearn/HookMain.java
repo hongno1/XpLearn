@@ -114,7 +114,7 @@ public class HookMain implements IXposedHookLoadPackage {
     private boolean connectServer(){
 
         String clientId = UUID.randomUUID().toString().replace("-", "");
-        SekiroClient sekiroClient = new SekiroClient("test001", clientId, "81.69.37.203", 5612);
+        SekiroClient sekiroClient = new SekiroClient("test002", clientId, "81.69.37.203", 5612);
 
         // 开启异步线程实现 处理任务
         new Thread(new Runnable() {

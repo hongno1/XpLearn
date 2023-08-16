@@ -1,6 +1,7 @@
 package com.example.xplearn;
 
 import cn.iinti.sekiro3.business.api.fastjson.JSONObject;
+import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
 
 public class Store {
@@ -21,6 +22,23 @@ public class Store {
             return false;
         }
 
+    }
+
+
+    public static boolean hookLog(ClassLoader classLoader){
+        XposedHelpers.findAndHookMethod("com.hexl.lessontest.utils.LogUtils", classLoader, "info", String.class, new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                super.beforeHookedMethod(param);
+            }
+
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                super.afterHookedMethod(param);
+            }
+        });
+
+        return true;
     }
 
 
