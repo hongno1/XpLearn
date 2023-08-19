@@ -1,6 +1,7 @@
 package com.example.xplearn;
 
 import android.app.AndroidAppHelper;
+import android.app.Application;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
@@ -29,7 +30,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import de.robv.android.xposed.callbacks.XCallback;
 
 public class HookMain implements IXposedHookLoadPackage {
-    private static final String TAG = "XpTest";
+    private static final String TAG = "XpLearn";
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
@@ -60,17 +61,71 @@ public class HookMain implements IXposedHookLoadPackage {
             connectServer();
 
 
-            Class<?> aClass = XposedHelpers.findClassIfExists("com.hexl.lessontest.logic.People", lpparam.classLoader);
-            if (aClass != null){
-                XposedBridge.hookAllConstructors(aClass, new XC_MethodHook() {
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        super.afterHookedMethod(param);
-                        Store.peopleMethodInstance = param.thisObject;
-                    }
-                });
-            }
+//            Class<?> aClass = XposedHelpers.findClassIfExists("com.hexl.lessontest.logic.People", lpparam.classLoader);
+//            if (aClass != null){
+//                XposedBridge.hookAllConstructors(aClass, new XC_MethodHook() {
+//                    @Override
+//                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+//                        super.afterHookedMethod(param);
+//                        Store.peopleMethodInstance = param.thisObject;
+//                    }
+//                });
+//            }
+//
+//            Store.hookLog(classLoader);
 
+            hookJiaGu(lpparam);
+
+        }
+    }
+
+    private void hookJiaGu(XC_LoadPackage.LoadPackageParam lpparam) {
+        hookJiaGuApp(lpparam.packageName, lpparam.classLoader, "org");
+
+        // 第一种可能的形式
+        XposedHelpers.findAndHookMethod(Application.class, "attach", Context.class, new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                super.afterHookedMethod(param);
+
+                //获取应用程序的 Context对象
+                Context context = (Context) param.args[0];
+                hookJiaGuApp(lpparam.packageName, context.getClassLoader(), "attach");
+            }
+        });
+
+        //第二种形式
+        Class<?> Instrumentation = XposedHelpers.findClass("android.app.Instrumentation", null);
+        XposedHelpers.findAndHookMethod(Instrumentation, "callApplicationOnCreate", Application.class, new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                super.afterHookedMethod(param);
+
+                Context context = ((Application) param.args[0]).getApplicationContext();
+                hookJiaGuApp(lpparam.packageName, context.getClassLoader(), "callApplicationOnCreate");
+            }
+        });
+
+        Class<?> ActivityThread = XposedHelpers.findClass("android.app.ActivityThread", null);
+        XposedBridge.hookAllMethods(ActivityThread, "performLaunchActivity", new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                super.afterHookedMethod(param);
+
+                Object mInitialApplication = XposedHelpers.getObjectField(param.thisObject, "mInitialApplication");
+                ClassLoader finalCL = (ClassLoader) XposedHelpers.callMethod(mInitialApplication, "getClassLoader");
+
+                hookJiaGuApp(lpparam.packageName, finalCL, "performLaunchActivity");
+            }
+        });
+
+
+    }
+
+    private void hookJiaGuApp(String packageName, ClassLoader classLoader, String sourceTag) {
+        if ("com.weisheng.vvic".equals(packageName)){
+            Class<?> classIfExists = XposedHelpers.findClassIfExists("com.weisheng.vvic.activity.MainActivity", classLoader);
+            Log.i(TAG, "hookJiaGuApp: MainActivity = "+ classIfExists + " , sourceTag= "+ sourceTag);
         }
     }
 
